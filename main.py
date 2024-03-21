@@ -1,4 +1,3 @@
-import concurrent
 import os
 import random
 import time
@@ -9,6 +8,7 @@ from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 from config import *
+from contracts import *
 from data.database_actions import initialize_database
 from transaction_staff import AptosTxnManager
 from loguru import logger
@@ -49,7 +49,7 @@ def process_account(account_number, logger):
             random_token_key = random.choice(list(TOKEN_MAP.keys()))
             swap_amount = round(random.uniform(AMOUNT_TO_STAKE_MIN, AMOUNT_TO_STAKE_MAX), 8)
             balance = txn_manager.get_account_balance()
-            swap_amount_wei = swap_amount * 10**8
+            swap_amount_wei = int(swap_amount * 10 ** 8)
             if balance - swap_amount_wei < 100000:
                 logger.critical(f'acc does not have required amount. '
                                 f'acc balance - {balance / 10**8}, required - {swap_amount}')
@@ -58,7 +58,7 @@ def process_account(account_number, logger):
             txn_manager.swap_apt_to_token(random_token_key, swap_amount_wei)
             time.sleep(1)
             value = txn_manager._get_coin_value(TOKEN_MAP[random_token_key]['resource'])
-            if value > 0:
+            if int(value) > 0:
                 txn_manager.lend_token(random_token_key, value)
             else:
                 logger.error("tokens required for landing don't funded")

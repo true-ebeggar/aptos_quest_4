@@ -1,17 +1,19 @@
 import json
-import random
 import time
 import requests
+
 from aptos_sdk.account import Account
 from aptos_sdk.client import RestClient
+from aptos_sdk.client import ClientConfig
 from pyuseragents import random as random_ua
 from loguru import logger
-from config import *
-from aptos_sdk.client import ClientConfig
 
+from config import *
+from contracts import *
+from generate_payload import *
 
 ClientConfig.max_gas_amount = 100_00
-SLIPPAGE = (100 - MAX_SLIPPAGE_PERCENT) / 100
+SLIPPAGE = (100 - 3) / 100
 
 
 class AptosTxnManager:
@@ -90,6 +92,28 @@ class AptosTxnManager:
             return None
         except Exception as e:
             self.logger.error(f"An error occurred: {e}")
+            return None
+
+    def _get_cell_value(self):
+        payload = {
+            "function": "0x1::primary_fungible_store::balance",
+            "type_arguments": ["0x1::fungible_asset::Metadata"],
+            "arguments": [
+                str(self.address),
+                "0x2ebb2ccac5e027a87fa0e2e5f656a3a4238d6a48d93ec9b610d570fc0aa0df12"
+            ]
+        }
+        try:
+            response = requests.post('https://fullnode.mainnet.aptoslabs.com/v1/view', json=payload)
+            if response.status_code == 200:
+                response_data = response.json()
+                if response_data:
+                    return int(response_data[0])
+            else:
+                logger.error(f"failed to get cell value, status code: {response.status_code}")
+                return None
+        except Exception as e:
+            logger.critical(f"error: {e}")
             return None
 
     def get_account_balance(self):
@@ -211,26 +235,69 @@ class AptosTxnManager:
             "type": "entry_function_payload"
         }
 
-        self.logger.info(f"going to lend {amount_token_wei / decimals} {token.upper()}")
+        self.logger.info(f"going to lend {int(amount_token_wei) / 10**decimals} {token.upper()}")
         return self._submit_and_log_transaction(payload)
+
+    def vote_cell(self, argument0):
+        try:
+            num_of_pools = random.randint(1, 5)
+            self.logger.info(f"{self.address} going to distribute voting pover by {num_of_pools} pools")
+            payload = generate_payload(distribute_points(pool_addresses, num_of_pools), argument0)
+            # print(json.dumps(payload, indent=4))
+            return self._submit_and_log_transaction(payload)
+        except Exception as e:
+            self.logger.error(f"error while making up payload: {str(e)}")
+            return 0
 
     def _lock_cell(self):
         weeks = [2, 4, 24, 52, 104]
         week = random.choice(weeks)
-        cellana_resource = '0x2ebb2ccac5e027a87fa0e2e5f656a3a4238d6a48d93ec9b610d570fc0aa0df12'
-        amount = self._get_coin_value(cellana_resource)
+        amount = self._get_cell_value()
 
         payload = {
             "function": "0x4bf51972879e3b95c4781a5cdcb9e1ee24ef483e7d22f2d903626f126df62bd1::voting_escrow::create_lock_entry",
             "type_arguments": [],
             "arguments": [
-                amount,
+                str(amount),
                 str(week)
             ],
             "type": "entry_function_payload"
         }
-        self.logger.info(f"{self.address} locking {amount / 10 ** 8} CELL for {week} weeks")
-        return self._submit_and_log_transaction(payload)
+        self.logger.info(f"{self.address} locking {amount / 10**8} CELL for {week} weeks")
+        try:
+            txn = self.rest_client.submit_transaction(self.account, payload)
+            self.rest_client.wait_for_transaction(txn)
+            self.logger.success(f'https://explorer.aptoslabs.com/txn/{txn}?network=mainnet')
+            return txn
+        except AssertionError as e:
+            error_message = str(e)
+            try:
+                hash_value = error_message.split(" - ")[-1].strip()
+                self.logger.error(f"assertionError: https://explorer.aptoslabs.com/txn/{hash_value}?network=mainnet")
+                return 0
+            except json.JSONDecodeError:
+                self.logger.error(f"assertionError: {error_message}")
+                return 0
+        except Exception as e:
+            self.logger.critical(f"an unexpected error occurred: {e}")
+            return 0
+
+    def cell_wrap(self, amount_wei):
+        if self._swap_to_cell(amount_wei):
+            hash = self._lock_cell()
+            argument0 = find_token_address(hash)
+            if argument0 is not None:
+                if self.vote_cell(argument0):
+                    return 0
+                else:
+                    logger.error("error while voting")
+                    return 0
+            else:
+                logger.error("error while finding cell argument")
+                return 0
+        else:
+            logger.error("error while swapping apt to cell")
+            return 0
 
     def _swap_to_cell(self, amount_apt_wei: int):
         payload = {
@@ -249,7 +316,7 @@ class AptosTxnManager:
                 [
                     False
                 ],
-                str(self.account)
+                str(self.address)
             ],
             "type": "entry_function_payload"
         }
@@ -259,4 +326,5 @@ class AptosTxnManager:
 
 
 if __name__ == "__main__":
-    pass
+    m = AptosTxnManager('')
+    m.cell_wrap(1000000)

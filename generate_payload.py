@@ -2,6 +2,8 @@ import random
 import re
 import requests
 from loguru import logger
+
+
 def distribute_points(addresses, num_addresses):
     chosen_addresses = random.sample(addresses, num_addresses)
 

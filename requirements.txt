@@ -4,3 +4,5 @@ pyuseragents
 loguru
 sqlalchemy
 ccxt
+selenium
+selenium-wire

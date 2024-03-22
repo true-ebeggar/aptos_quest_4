@@ -7,6 +7,7 @@ from loguru import logger
 TOKEN = 'APT'
 NETWORK = 'Aptos'
 
+
 def refuel_wrap(txn_manager, account):
     balance_before = txn_manager.get_account_balance()
     readable_balance = balance_before / 10 ** 8
@@ -36,6 +37,8 @@ def refuel_wrap(txn_manager, account):
     else:
         logger.success(f'balance ({readable_balance}) > REFUEL_THRESHOLD ({REFUEL_THRESHOLD})')
         return True
+
+
 def okx_withdraw(address, amount_to_withdraw):
     exchange = ccxt.okx({
         'apiKey': API_KEY,

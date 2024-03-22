@@ -1,15 +1,15 @@
 import os
 import random
-import time
 import traceback
 
 from concurrent.futures import ThreadPoolExecutor, as_completed, wait, FIRST_COMPLETED
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import sessionmaker, declarative_base
-from loguru import logger
+from seleniumwire import webdriver
 
 from config import *
 from contracts import *
+from google_form import *
 from data.database_actions import initialize_database
 from transaction_staff import AptosTxnManager
 from withdraw_okx import refuel_wrap
@@ -33,24 +33,26 @@ class Account(Base):
     stage_2 = Column(Integer)
     stage_3 = Column(Integer)
 
+
 engine = create_engine('sqlite:///accounts.db')
 Base.metadata.create_all(engine)
 DBSession = sessionmaker(bind=engine)
 
-def onchain_tasks(account_number):
+
+def sleep():
+    s = random.randint(SLEEP_MIN, SLEEP_MAX)
+    logger.warning(f"thread will sleep for {s}-sec")
+    time.sleep(s)
+def onchain_tasks(account):
     with DBSession() as session:
-        account = session.query(Account).filter_by(account_number=account_number).first()
         if not account:
-            logger.error(f"Account_number: {account_number} not found. Exiting process.")
+            logger.error(f"there is no account supply for this function...")
             return
+
         txn_manager = AptosTxnManager(account.private_key)
         if REFUEL:
             if not refuel_wrap(txn_manager, account):
                 return
-
-        if account.stage_1 != 0:
-            logger.warning(f'it look like address {account.address} already done onchain tasks')
-            return
 
         try:
             random_token_key = random.choice(list(TOKEN_MAP.keys()))
@@ -74,16 +76,55 @@ def onchain_tasks(account_number):
             swap_amount_wei2 = int(swap_amount2 * 10 ** 8)
             if txn_manager.cell_wrap(swap_amount_wei2):
                 logger.success(f'account №{account.account_number} [{account.address}] complete task')
+                account = session.query(Account).filter_by(account_number=account.account_number).first()
                 account.stage_1 = 1
                 session.commit()
-                s = random.randint(SLEEP_MIN, SLEEP_MAX)
-                logger.warning(f"thread will sleep for {s}-sec")
-
+                sleep()
 
         except Exception as e:
-            logger.critical(f"Error while swapping: {str(e)}")
-            logger.critical(f"Error occurred in account {account_number} with token {random_token_key}")
-            logger.critical(f"Traceback: {traceback.format_exc()}")
+            session.rollback()
+            logger.critical(f"error while doing onchain tasks {account.address}: {e}")
+            logger.critical(f"traceback: {traceback.format_exc()}")
+
+
+def form_task(account):
+    with DBSession() as session:
+        if not account:
+            logger.error(f"there is no account supply for this function...")
+            return
+
+        try:
+            script_dir = os.path.dirname(os.path.realpath(__file__))
+            extension_dir = os.path.join(script_dir, extension_subdir)
+            chrome_options = webdriver.ChromeOptions()
+            chrome_options.add_argument('start-maximized')
+            chrome_options.add_argument(f'--load-extension={extension_dir}')
+
+            driver = webdriver.Chrome(options=chrome_options)
+            driver.get(GOOGLE_FORM_URL)
+
+            with open('data/emails.txt', 'r') as file:
+                lines = file.readlines()
+                if not lines:
+                    logger.warning("there is no lines if file 'data/emails.txt'")
+                    return
+                email = lines[0].strip()
+            with open('data/emails.txt', 'w') as file:
+                file.writelines(lines[1:])
+
+            logger.info(f'attempt to fill form for account №{account.account_number} [{account.address}]')
+            if fill_the_form(driver, str(account.address), email):
+                logger.success(f'email {email} assigned to account №{account.account_number} [{account.address}]')
+                account = session.query(Account).filter_by(account_number=account.account_number).first()
+                account.stage_2 = email
+                session.commit()
+                driver.close()
+                sleep()
+
+        except Exception as e:
+            session.rollback()
+            logger.critical(f"error while filling form for address {account.address}: {e}")
+            logger.critical(f"traceback: {traceback.format_exc()}")
 
 def treading(task):
     with DBSession() as session:
@@ -94,7 +135,13 @@ def treading(task):
     with ThreadPoolExecutor(max_workers=MAX_THREAD) as executor:
         futures = []
         for account in accounts:
-            future = executor.submit(task, account.account_number)
+            if account.stage_1 != 0 and task == onchain_tasks:
+                logger.warning(f'it look like address {account.address} already done onchain tasks')
+                continue
+            if account.stage_2 != 0 and task == form_task:
+                logger.warning(f'it look like address {account.address} already filled form')
+                continue
+            future = executor.submit(task, account)
             futures.append(future)
 
             s = random.randint(SLEEP_FOR_THREAD_MIN, SLEEP_FOR_THREAD_MAX)
@@ -113,10 +160,14 @@ if __name__ == "__main__":
 
     print("\nMake your choice:")
     print("1. Onchain tasks")
+    print('2. Form filler (selenium)')
 
     choice = input("\nEnter your choice: ")
 
     if choice == "1":
         treading(onchain_tasks)
+    elif choice == '2':
+        print("if form filled - email will be deleted from emails.txt and assigned to it address inside db")
+        treading(form_task)
     else:
         print("Invalid choice. Please try again.")

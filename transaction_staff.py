@@ -155,7 +155,7 @@ class AptosTxnManager:
         while attempts < 100:
             try:
                 response = requests.get(
-                    'https://control.pontem.network/api/integrations/fiat-prices?currencies=eth,apt,usdc,usdt',
+                    'https://control.pontem.network/api/integrations/fiat-prices?currencies=weth,apt,usdc,usdt',
                     headers=headers
                 )
                 if response.status_code == 200:
@@ -288,7 +288,7 @@ class AptosTxnManager:
             argument0 = find_token_address(hash)
             if argument0 is not None:
                 if self.vote_cell(argument0):
-                    return 0
+                    return 1
                 else:
                     logger.error("error while voting")
                     return 0

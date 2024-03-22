@@ -1,12 +1,10 @@
 import json
 import time
-import requests
 
 from aptos_sdk.account import Account
 from aptos_sdk.client import RestClient
 from aptos_sdk.client import ClientConfig
 from pyuseragents import random as random_ua
-from loguru import logger
 
 from config import *
 from contracts import *

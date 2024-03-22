@@ -6,12 +6,12 @@ import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed, wait, FIRST_COMPLETED
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import sessionmaker, declarative_base
+from loguru import logger
 
 from config import *
 from contracts import *
 from data.database_actions import initialize_database
 from transaction_staff import AptosTxnManager
-from loguru import logger
 from withdraw_okx import refuel_wrap
 
 

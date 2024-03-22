@@ -138,7 +138,6 @@ class AptosTxnManager:
             "Accept": "*/*",
             "Accept-Encoding": "gzip, deflate, br",
             "Accept-Language": "en-US,en;q=0.9",
-            "If-None-Match": 'W/"927-wrpuzNZ1tVuG1LAZ/4/YRXvNyfY"',
             "Origin": "https://liquidswap.com",
             "Referer": "https://liquidswap.com/",
             "Sec-Ch-Ua": '"Not A(Brand";v="99", "Opera";v="107", "Chromium";v="121"',

@@ -136,7 +136,7 @@ class AptosTxnManager:
     def get_token_price(self, token_to_get):
         headers = {
             "Accept": "*/*",
-            "Accept-Encoding": "gzip, deflate, br",
+            "Accept-Encoding": "gzip",
             "Accept-Language": "en-US,en;q=0.9",
             "Origin": "https://liquidswap.com",
             "Referer": "https://liquidswap.com/",

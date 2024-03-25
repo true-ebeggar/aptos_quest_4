@@ -12,5 +12,5 @@ AMOUNT_TO_STAKE_MIN, AMOUNT_TO_STAKE_MAX = 0.001, 0.01
 SLEEP_FOR_THREAD_MIN, SLEEP_FOR_THREAD_MAX = 5, 10
 SLEEP_MIN, SLEEP_MAX = 1, 2
 
-GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSduBtYU6xNakl41ch3rqrCY4-y-roqO3_MtgadAMYc83TY-kg/viewform"
+GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdaNMHHDIki4XZgzES9DyCIds6jzfGtY28o5AONrlRmVUgIwg/viewform"
 NODE = "https://fullnode.mainnet.aptoslabs.com/v1"

@@ -143,7 +143,7 @@ def twitter_and_claim(account):
                 with open('data/twitter_tokens.txt', 'r') as file:
                     lines = file.readlines()
                     if not lines:
-                        logger.warning("there is no lines in file 'data/emails.txt'")
+                        logger.warning("there is no lines in file 'data/twitter_tokens.txt'")
                         return
                     token = lines[0].strip()
                 with open('data/twitter_tokens.txt', 'w') as file:

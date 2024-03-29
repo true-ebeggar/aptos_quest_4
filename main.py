@@ -119,7 +119,7 @@ def form_task(account):
             if fill_the_form(driver, str(account.address), email):
                 logger.success(f'email {email} assigned to account №{account.account_number} [{account.address}]')
                 account = session.query(Account).filter_by(account_number=account.account_number).first()
-                account.stage_2 = email
+                account.stage_3 = token
                 session.commit()
                 driver.close()
                 sleep()

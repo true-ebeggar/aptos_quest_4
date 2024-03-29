@@ -140,7 +140,6 @@ class AptosTxnManager:
             "Accept-Language": "en-US,en;q=0.9",
             "Origin": "https://liquidswap.com",
             "Referer": "https://liquidswap.com/",
-            "Sec-Ch-Ua": '"Not A(Brand";v="99", "Opera";v="107", "Chromium";v="121"',
             "Sec-Ch-Ua-Mobile": "?0",
             "Sec-Ch-Ua-Platform": '"Windows"',
             "Sec-Fetch-Dest": "empty",
@@ -149,7 +148,7 @@ class AptosTxnManager:
             "User-Agent": random_ua()
         }
         attempts = 0
-        while attempts < 100:
+        while attempts < 10:
             try:
                 response = requests.get(
                     'https://control.pontem.network/api/integrations/fiat-prices?currencies=weth,apt,usdc,usdt',

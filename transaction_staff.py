@@ -170,7 +170,7 @@ class AptosTxnManager:
                 pass
             finally:
                 attempts += 1
-                time.sleep(1)
+                time.sleep(5)
 
         self.logger.error("Unable to fetch price after 10 retries. Giving up...")
         return None
@@ -321,7 +321,25 @@ class AptosTxnManager:
         self.logger.info(f"{self.address} swapping {amount_apt_wei / 10 ** 8} APT to CELL")
         return self._submit_and_log_transaction(payload)
 
+    def claim(self, verify_ids, signature, signature_expired_at):
+
+        payload = {
+            "function": "0xe7c7bb0e53fc6fb86aa7464645fbac96b96716463b4e2269c62945c135aa26fd::oat::claim",
+            "type_arguments": [],
+            "arguments": [
+                "0x092d2f7ad00630e4dfffcca01bee12c84edf004720347fb1fd57016d2cc8d3f8",
+                str(verify_ids),
+                "0",
+                "[CLAIM ONLY] Quest Four - Aptos Ecosystem Fundamentals",
+                "1",
+                str(signature_expired_at),
+                str(signature)
+            ],
+            "type": "entry_function_payload"
+        }
+
+        return self._submit_and_log_transaction(payload)
+
 
 if __name__ == "__main__":
     m = AptosTxnManager('')
-    m.cell_wrap(1000000)

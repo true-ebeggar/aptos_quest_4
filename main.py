@@ -1,3 +1,4 @@
+import asyncio
 import os
 import random
 import traceback
@@ -6,10 +7,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed, wait, FIRST_COM
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import sessionmaker, declarative_base
 from seleniumwire import webdriver
+from aptos_sdk.account import Account as acccount
 
 from config import *
 from contracts import *
 from google_form import *
+from galxy import GalaxyAccountManager
 from data.database_actions import initialize_database
 from transaction_staff import AptosTxnManager
 from withdraw_okx import refuel_wrap
@@ -97,7 +100,7 @@ def form_task(account):
             script_dir = os.path.dirname(os.path.realpath(__file__))
             extension_dir = os.path.join(script_dir, extension_subdir)
             chrome_options = webdriver.ChromeOptions()
-            chrome_options.add_argument('start-maximized')
+            chrome_options.add_argument('--new-window')  # Open Chrome in a new window
             chrome_options.add_argument(f'--load-extension={extension_dir}')
 
             driver = webdriver.Chrome(options=chrome_options)
@@ -106,7 +109,7 @@ def form_task(account):
             with open('data/emails.txt', 'r') as file:
                 lines = file.readlines()
                 if not lines:
-                    logger.warning("there is no lines if file 'data/emails.txt'")
+                    logger.warning("there is no lines in file 'data/emails.txt'")
                     return
                 email = lines[0].strip()
             with open('data/emails.txt', 'w') as file:
@@ -126,6 +129,52 @@ def form_task(account):
             logger.critical(f"error while filling form for address {account.address}: {e}")
             logger.critical(f"traceback: {traceback.format_exc()}")
 
+
+def twitter_and_claim(account):
+    with DBSession() as session:
+        if not account:
+            logger.error(f"there is no account supply for this function...")
+            return
+        account_apt = acccount.load_key(account.private_key)
+        manager = GalaxyAccountManager(account_apt=account_apt)
+        txn_manager = AptosTxnManager(account.private_key)
+        if manager.check_approve():
+            try:
+                with open('data/twitter_tokens.txt', 'r') as file:
+                    lines = file.readlines()
+                    if not lines:
+                        logger.warning("there is no lines in file 'data/emails.txt'")
+                        return
+                    token = lines[0].strip()
+                with open('data/twitter_tokens.txt', 'w') as file:
+                    file.writelines(lines[1:])
+
+                logger.info(f'attempt to bind twitter for account №{account.account_number} [{account.address}]')
+                manager.sign_in_apt()
+                if asyncio.run(manager.link_twitter(token)):
+                    logger.info(f'twitter token is prepared and bind to '
+                                f'account №{account.account_number} [{account.address}]')
+                    manager.prepare_twitter("388797856569397248")
+                    manager.prepare_twitter('375866499102953472')
+                    manager.confirm_twitter('388797856569397248')
+                    manager.confirm_twitter('375866499102953472')
+                    verify_id, signature, signature_expired_at = manager.get_txn_data()
+                    if txn_manager.claim(verify_id, signature, signature_expired_at):
+                        logger.success(f"OAT claimed, twitter token assigned to account "
+                                       f"№{account.account_number} [{account.address}]")
+                        account = session.query(Account).filter_by(account_number=account.account_number).first()
+                        account.stage_2 = token
+                        session.commit()
+                        sleep()
+            except Exception as e:
+                session.rollback()
+                logger.critical(f"error while doing twitter tasks and claim for address {account.address}: {e}")
+                logger.critical(f"traceback: {traceback.format_exc()}")
+        else:
+            logger.info(f'account №{account.account_number} [{account.address}] is not approved, impossible to claim')
+            return
+
+
 def treading(task):
     with DBSession() as session:
         accounts = session.query(Account).all()
@@ -140,6 +189,12 @@ def treading(task):
                 continue
             if account.stage_2 != 0 and task == form_task:
                 logger.warning(f'it look like address {account.address} already filled form')
+                continue
+            if account.stage_3 != 0 and task == twitter_and_claim:
+                logger.warning(f'it look like address {account.address} already claim OAT')
+                continue
+            if account.stage_3 != 0 and task == form_task:
+                logger.warning(f'it look like address {account.address} already claim OAT, no need to fill form')
                 continue
             future = executor.submit(task, account)
             futures.append(future)
@@ -161,6 +216,7 @@ if __name__ == "__main__":
     print("\nMake your choice:")
     print("1. Onchain tasks")
     print('2. Form filler (selenium)')
+    print('3. Claim')
 
     choice = input("\nEnter your choice: ")
 
@@ -169,5 +225,8 @@ if __name__ == "__main__":
     elif choice == '2':
         print("if form filled - email will be deleted from emails.txt and assigned to it address inside db")
         treading(form_task)
+    elif choice == '3':
+        print("if claimed - twitter token will be deleted from twitter_tokens.txt and assigned to it address inside db")
+        treading(twitter_and_claim)
     else:
         print("Invalid choice. Please try again.")

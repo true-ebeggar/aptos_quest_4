@@ -1,16 +1,24 @@
 REFUEL = True
-REFUEL_THRESHOLD = 0.02
-API_KEY = "553f424f-b5d1-4054-bcdb-17689ceab4be"
-API_SECRET = "BAF145E68CA0636D17FDFE6314BB6041"
-PASSPHRASE = 'Zetca1337((('
-MIN_AMOUNT_WITHDRAW, MAX_AMOUNT_WITHDRAW = 0.01, 0.05
+REFUEL_THRESHOLD = 0.2
+API_KEY = ""
+API_SECRET = ""
+PASSPHRASE = ''
+MIN_AMOUNT_WITHDRAW, MAX_AMOUNT_WITHDRAW = 0.2, 0.6
 
 SHUFFLE_ACCOUNTS = True
-MAX_THREAD = 5
+MAX_THREAD = 2
 
-AMOUNT_TO_STAKE_MIN, AMOUNT_TO_STAKE_MAX = 0.001, 0.01
-SLEEP_FOR_THREAD_MIN, SLEEP_FOR_THREAD_MAX = 5, 10
+AMOUNT_TO_STAKE_MIN, AMOUNT_TO_STAKE_MAX = 0.01, 0.05
+SLEEP_FOR_THREAD_MIN, SLEEP_FOR_THREAD_MAX = 1, 2
 SLEEP_MIN, SLEEP_MAX = 1, 2
 
 GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSduBtYU6xNakl41ch3rqrCY4-y-roqO3_MtgadAMYc83TY-kg/viewform"
 NODE = "https://fullnode.mainnet.aptoslabs.com/v1"
+
+# If you`re going to use authentication by IP - you need to add you IP to whitelist on SmartProxy portal:
+# Visit this link "https://dashboard.smartproxy.com/mobile-proxies/proxy-setup"
+# Otherwise you should use link with credentials and paste it below, it looks something like this:
+# f"http://{username}:{password}@gate.smartproxy.com:10001"
+
+SMART_PROXY_URL = 'http://gate.smartproxy.com:10001'
+TWO_CAPTCHA_KEY = ''

@@ -6,3 +6,5 @@ sqlalchemy
 ccxt
 selenium
 selenium-wire
+2captcha-python
+tweepy-self

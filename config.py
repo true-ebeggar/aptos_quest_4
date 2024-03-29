@@ -20,5 +20,5 @@ NODE = "https://fullnode.mainnet.aptoslabs.com/v1"
 # Otherwise you should use link with credentials and paste it below, it looks something like this:
 # f"http://{username}:{password}@gate.smartproxy.com:10001"
 
-SMART_PROXY_URL = 'http://gate.smartproxy.com:10001'
+SMART_PROXY_URL = 'http://gate.smartproxy.com:7000'
 TWO_CAPTCHA_KEY = ''

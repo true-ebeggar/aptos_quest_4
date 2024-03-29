@@ -163,7 +163,7 @@ def twitter_and_claim(account):
                         logger.success(f"OAT claimed, twitter token assigned to account "
                                        f"№{account.account_number} [{account.address}]")
                         account = session.query(Account).filter_by(account_number=account.account_number).first()
-                        account.stage_2 = token
+                        account.stage_3 = token
                         session.commit()
                         sleep()
             except Exception as e:

@@ -299,9 +299,12 @@ class GalaxyAccountManager:
             response = requests.post(self.galaxy_query, headers=headers, json=payload, proxies=self.proxies)
             # print(json.dumps(response.json(), indent=4))
             if response.status_code == 200:
-                eligible_value = next(
-                    (cred['eligible'] for cred in response.json()['data']['campaign']['credentialGroups'][0]['credentials'] if
-                     cred['id'] == '393089378257244160'), None)
+                credentials_list = response.json()['data']['campaign']['credentialGroups'][0]['credentials']
+                eligible_value = None
+                for cred in credentials_list:
+                    if cred['id'] == '397897604815392768':
+                        eligible_value = cred['eligible']
+                        break
                 if eligible_value == 1:
                     logger.success(f"it look like wallet {self.account_apt.address()}"
                                    f" is approved, connection twitter and claim")
